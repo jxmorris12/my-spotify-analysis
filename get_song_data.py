@@ -4,4 +4,4 @@
 
 import download_playlists
 
-print download_playlists.download('vanilla cheesecake', 'summer 1')
+print download_playlists.download('vanilla cheesecake', '_summer 1')

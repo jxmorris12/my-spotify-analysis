@@ -4,6 +4,7 @@
 
 import config
 import requests
+import unicodedata
 
 api_url = "https://api.spotify.com/v1/"
 max_limit = 50
@@ -16,27 +17,44 @@ def download(start_name, end_name):
   limit = max_limit
   offset = 0
   #
-  found_start_playlist = False
+  in_folder = False
   #
   all_playlists = []
   print "getting"
   #
   while True:
     #
-    playlists = request_user_playlists(api_key, user_id, limit, offset)
-    print playlists
-    all_playlists.extend(playlists)
-    offset += limit
-    names = [playlist.name for playlist in playlists]
-    found_start_playlist = (start_name in names) or found_start_playlist
+    playlist_search = request_user_playlists(api_key, user_id, limit, offset)
+    playlists = playlist_search["items"]
     #
-    if found_start_playlist and end_name in names:
+    offset += limit
+    names = [_u(playlist["name"]) for playlist in playlists]
+    found_start_playlist = start_name in names
+    found_end_playlist   = end_name in names
+    #
+    if found_start_playlist:
       #
-      break
+      index = names.index(start_name)
+      all_playlists.extend(playlists[index:])
       #
+    elif in_folder:
+      #
+      if found_end_playlist:
+        #
+        index = names.index(end_name) + 1
+        all_playlists.extend(playlists[:index])
+        break
+        #
+      else:
+        #
+        all_playlists.extend(playlists)
+        #
+      #
+    #
+    in_folder = in_folder or found_start_playlist
     #
   #
-  print all_playlists
+  print [_u(playlist["name"]) for playlist in all_playlists]
   #
 
 def request_user_playlists(api_key, user_id, limit, offset):
@@ -48,12 +66,16 @@ def request_user_playlists(api_key, user_id, limit, offset):
 
 def api_request(api_key, endpoint):
   #
+  print "GET:\t" + endpoint
+  #
   headers = {
     "Authorization": "Bearer " + api_key,
     "Accept": "application/json"
   }
-  print "headers", headers
   url = api_url + endpoint
   r = requests.get(url, headers=headers)
   return r.json()  
   #
+
+def _u(s):
+  return unicodedata.normalize('NFKD', s).encode('ascii','ignore')
